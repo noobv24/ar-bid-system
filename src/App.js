@@ -14,6 +14,21 @@ const { TextArea } = Input;
 const { Meta } = Card;
 const ArweaveUtils = require("arweave/node/lib/utils");
 
+const ReadWalletFile = (walletFile) => {
+  const readAsDataURL = (walletFile) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => {
+        reader.abort()
+        reject()
+      }
+      reader.addEventListener("load", () => {resolve(reader.result)}, false)
+      reader.readAsText(walletFile)
+    })
+  }
+  return readAsDataURL(walletFile);
+}
+
 const arweave = Arweave.init({
   host: "arweave.net",
   protocol: "https",
@@ -205,6 +220,34 @@ class App extends React.Component {
     }
   };
 
+  WalletUpload = async(e) => {  
+    try {
+      this.setState({loading:true})
+      const rawWallet = await ReadWalletFile(e.target.files[0])    
+      let walletObj = JSON.parse(rawWallet);
+      const { address, balance } = await getAddressAndBalance(walletObj);
+
+      this.setState({
+        loading: false,
+        loadWallet: true,
+        walletData: walletObj,
+        arwAddress: address,
+        arwBalance: balance,
+        loadWalletData: "",
+      });
+      return;
+    } catch (err) {
+      console.log(err);
+      this.setState({ loading: false });
+      openNotificationWithIcon(
+        "error",
+        "Error Message!",
+        "Something wrong, check your file key"
+      );
+    }
+
+  }
+
   getBestBidAmount = async (item) => {
     let txids = await this.getTxList(item);
     if (txids.length === 0)
@@ -318,9 +361,9 @@ class App extends React.Component {
       console.log(response);
       if (response.data === "OK" && response.status === 200) {
         this.setState({
-          candidateTag: "",
+          creatingTx: false,
+          openModel: false,
           txRunning: false,
-          modalTx: false,
         });
         openNotificationWithIcon(
           "success",
@@ -330,11 +373,11 @@ class App extends React.Component {
         return;
       }
       openNotificationWithIcon("error", "Error Message!", "Transaction Failed");
-      this.setState({ txRunning: false, cryptoTxPass: "" });
+      this.setState({ txRunning: false, cryptoTxPass: "", creatingTx: false, openModel: false  });
     } catch (err) {
       console.log(err);
       openNotificationWithIcon("error", "Error Message!", "Transaction Failed");
-      this.setState({ txRunning: false, cryptoTxPass: "" });
+      this.setState({ txRunning: false, cryptoTxPass: "", creatingTx: false, openModel: false  });
     }
   };
 
@@ -363,15 +406,29 @@ class App extends React.Component {
               justifyContent: "space-between",
             }}
           >
-            <h1 className="title">AR AUCTION SYSTEM</h1>
+            <h1 className="title"
+                onClick={() => {
+                  this.setState({ selected: null });
+                }}
+                style={{
+                  cursor: "pointer"
+                }}
+            >AR AUCTION SYSTEM</h1>
             {!walletData ? (
-              <Button
-                size="large"
-                style={{ marginRight: "10%" }}
-                onClick={() => this.setState({ openLogin: true })}
-              >
-                Login to Arweave
-              </Button>
+              <div>
+                <label for="hidden-new-file" 
+                  style={{
+                    border: "1px solid #ccc",
+                    display: "inline-block",
+                    padding: "6px 12px",
+                    cursor: "pointer",
+                    fontSize: "15px",
+                  }}
+                >
+                  <i class="fa fa-cloud-upload"></i> Login To Bid
+                </label>
+                <input type="file" onChange={ e => this.WalletUpload(e)} id="hidden-new-file" style={{display: "none"}}/>
+              </div>
             ) : (
                 <div style={{ marginRight: "10%", fontSize: "15px" }}>
                   <p>
@@ -415,6 +472,11 @@ class App extends React.Component {
               </Button>,
             ]}
           >
+          <div>
+            <p>
+              <strong>Are you sure to bid: </strong> {data[this.state.selectedIndex].title}
+            </p>
+          </div>
           </Modal>
           <Modal
             title="Login to Arweave"
@@ -450,12 +512,6 @@ class App extends React.Component {
           </Modal>
           {selected && (
             <div>
-              <ArrowLeftOutlined
-                onClick={() => {
-                  this.setState({ selected: null });
-                }}
-                style={{ fontSize: "30px", marginBottom: "20px" }}
-              />
               <Row>
                 <Col span={18}>
                   <img
