@@ -49,7 +49,7 @@ const data = [
   {
     img:
       "https://image.invaluable.com/housePhotos/Fashionstrada/23/672923/H19501-L209685651.jpg",
-    title: "Estate Jewelry Auctioneers",
+    title: "Estate Jewelry Auctioneer",
     img2:
       "https://image.invaluable.com/housePhotos/Fashionstrada/23/672923/H19501-L209685651.jpg",
     html: `7.24 CTW Natural Aquamarine And Diamond Ring In 14K Solid Yellow Gold
@@ -68,7 +68,7 @@ const data = [
   {
     img:
       "https://anh.24h.com.vn/upload/2-2017/images/2017-05-07/1494158057-149387017976825-goddard-and-townsend-seceretary1.jpg",
-    title: "Goddard Townsend",
+    title: "Goddard Townsend ",
     img2:
       "https://anh.24h.com.vn/upload/2-2017/images/2017-05-07/1494158057-149387017976825-goddard-and-townsend-seceretary1.jpg",
     html: `The most famous pieces of furniture made by the leading cabinetmaking families of Newport, the Townsends and the Goddards, are the desks and bookcases with block fronts and six or nine shells. On these, the tripartite division of the blocked drawer fronts, terminating in large shells on the fall front, is continued upward on the bookcase unit in three hinged doors covering an array of cubbyholes. These monumental work stations were also symbols of their owners' business achievements. Thus, for example, each of the four Brown brothers, the leading merchants in late-eighteenth-century Providence, Rhode Island, had one.`,
@@ -250,7 +250,7 @@ class App extends React.Component {
 
   getBestBidAmount = async (item) => {
     let txids = await this.getTxList(item);
-    if (txids.length === 0)
+    if (txids.length < 1)
       return { amount: 0.001, mess: this.state.mess };
     let HighestBidAmount = 0;
     let txid;
@@ -258,6 +258,7 @@ class App extends React.Component {
       let response = await fetch(`https://arweave.net/tx/` + txids[i] + `/data`);
       let responseText = await response.text();
       let nextBidAmount = ArweaveUtils.b64UrlToString(responseText);
+      console.log(nextBidAmount);
       if (nextBidAmount > HighestBidAmount) {
         HighestBidAmount = nextBidAmount;
         txid = txids[i];
@@ -335,12 +336,10 @@ class App extends React.Component {
 
   OpenConfirm = async (item, bidAmount) => {
     let walletData = this.state.walletData;
-    console.log(item)
-    var obj = JSON.parse('{"address": "0xd9689e50C37976d46bE5C7A3EcDDBdbBE699123d"}');
     let transactionBuid = await arweave.createTransaction({
       target: "YZMWNRhKKwCQ7SGGKMm1lop2Gkog-LTMbzPSx7aaK70",
       quantity: arweave.ar.arToWinston('0.01'),
-      data: JSON.stringify(obj),
+      data: bidAmount,
     }, walletData);
 
     transactionBuid.addTag('App', "Auction");
